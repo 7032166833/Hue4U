@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hue4U | Landing Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <link rel="icon" href="LOGO.jpg" type="image/jpeg">
+
+    <style>
+        /* Global Body Styles */
+        body {
+            margin: 0;
+            background-color: #1a1a1a; /* Dark background */
+            font-family: sans-serif; /* Basic font */
+            color: #ffffff; /* Default text color */
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            overflow-y: auto; /* Enable vertical scrolling */
+            /* scroll-behavior: smooth;  REMOVED: We'll handle this with JS for better control */
+        }
+
+        /* Interactive Canvas Background - Fixed across all sections */
+        #interactiveCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1; /* Always behind other content */
+        }
+
+        /* Fixed Navigation Bar */
+        .fixed-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem 2rem; /* Padding for the nav bar */
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            z-index: 10; /* Ensures it's on top of all content */
+            display: flex;
+            justify-content: flex-end; /* IMPORTANT: Align content to the right */
+            align-items: center;
+        }
+
+        /* Nav Button Style (Login/Sign Up) */
+        .nav-button {
+            background-color: #333333;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-button:hover {
+            background-color: #000000;
+            transform: translateY(-2px);
+        }
+
+
+        /* Section Base Styles */
+        .page-section {
+            position: relative;
+            z-index: 1; /* Content above canvas */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 1rem; /* Default padding for sections */
+            text-align: center;
+        }
+
+        /* --- Hero Section (First Viewport) --- */
+        #hero-section {
+            min-height: 100vh; /* Takes full viewport height */
+            background-image: url('image_fea20f.png'); /* First Image */
+            background-size: cover;
+            background-position: center;
+            background-attachment: scroll; /* Scrolls with content */
+            color: #ffffff;
+            position: relative; /* For overlay positioning */
+            padding-top: 6rem; /* Adjusted padding to account for fixed nav bar */
+        }
+
+        #hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4); /* Dark overlay for text readability */
+            z-index: -1;
+        }
+
+        #hero-section h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5); /* Shadow for readability */
+        }
+
+        #hero-section p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            max-width: 800px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* --- Features Overview Section (Second Viewport) --- */
+        #features-overview-section {
+            background-image: url('image_fe4c8b.png'); /* Second Image */
+            background-size: cover;
+            background-position: center;
+            background-attachment: scroll; /* Scrolls with content */
+            color: #ffffff;
+            position: relative; /* For overlay positioning */
+            padding: 6rem 1rem; /* More padding to ensure content is visible */
+        }
+
+        #features-overview-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Slightly darker overlay for feature section image */
+            z-index: -1;
+        }
+
+        #features-overview-section h2 {
+            font-size: 2.75rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        #features-overview-section p {
+            font-size: 1.25rem;
+            margin-bottom: 3rem;
+            max-width: 900px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* --- Feature Boxes Section (Existing interactive boxes) --- */
+        #feature-boxes-section {
+            background-color: rgba(0,0,0,0.7); /* Slightly darker background to make boxes pop */
+            padding-top: 6rem; /* Ensures space above the boxes */
+            padding-bottom: 6rem;
+        }
+
+        .features-container {
+            width: 90%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            padding: 1rem;
+        }
+
+        /* Styling for individual feature boxes */
+        .feature-box {
+            background-color: rgba(255, 255, 255, 0.08); /* Slightly transparent white for glass effect */
+            backdrop-filter: blur(5px); /* Frosted glass effect */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            color: #f5f5f5;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+            cursor: pointer; /* Indicate interactivity */
+
+            /* Initial state for animation */
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInSlideUp 0.8s ease-out forwards;
+        }
+
+        .feature-box:hover {
+            transform: translateY(-5px) scale(1.02); /* Lift and slightly enlarge on hover */
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Animation for feature boxes */
+        @keyframes fadeInSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Stagger animation delay for each box */
+        .feature-box:nth-child(1) { animation-delay: 0.2s; }
+        .feature-box:nth-child(2) { animation-delay: 0.4s; }
+        .feature-box:nth-child(3) { animation-delay: 0.6s; }
+        .feature-box:nth-child(4) { animation-delay: 0.8s; }
+        /* Add more if you have more boxes and want staggered animations */
+
+        .feature-box h2 {
+            font-size: 1.75rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .feature-box p {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #d1d5db;
+        }
+
+        .feature-icon {
+            font-size: 3rem; /* Example icon size */
+            margin-bottom: 1rem;
+            color: #ffffff; /* Icon color */
+        }
+
+        /* Call to Action Buttons */
+        .cta-button {
+            display: inline-block; /* For proper padding and margin */
+            margin: 1rem;
+            background-color: #333333; /* Dark gray button */
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-size: 1.25rem;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-button:hover {
+            background-color: #000000; /* Black button on hover */
+            transform: translateY(-2px);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #hero-section h1 {
+                font-size: 2.5rem;
+            }
+            #hero-section p {
+                font-size: 1.2rem;
+            }
+            #features-overview-section h2 {
+                font-size: 2rem;
+            }
+            #features-overview-section p {
+                font-size: 1rem;
+            }
+            .feature-box {
+                padding: 1.5rem;
+            }
+            .fixed-nav {
+                padding: 0.75rem 1rem; /* Smaller padding on small screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="interactiveCanvas"></canvas>
+
+    <nav class="fixed-nav">
+        <a href="index.html" class="nav-button">Login / Sign Up</a>
+    </nav>
+
+    <section id="hero-section" class="page-section">
+        <h1>Welcome to Hue4U!</h1>
+        <p>Your Journey to Enhanced Vision Starts Here.</p>
+        <a href="#features-overview-section" class="cta-button scroll-link">Discover Features</a>
+    </section>
+
+    <section id="features-overview-section" class="page-section">
+        <h2>Unlocking a World of Color</h2>
+        <p>At Hue4U, we believe everyone deserves to experience the richness of the world. Our innovative solutions are designed to enhance your perception, one hue at a time.</p>
+    </section>
+
+    <section id="feature-boxes-section" class="page-section">
+        <h2 class="text-4xl font-bold mb-8">Our Core Features</h2>
+        <div class="features-container">
+            <div class="feature-box">
+                <div class="feature-icon">&#x1F441;</div> <h2>Enhanced Vision</h2>
+                <p>Experience the world with optimized color perception, tailored to your specific visual needs. See details you've been missing.</p>
+            </div>
+
+            <div class="feature-box">
+                <div class="feature-icon">&#x1F464;</div> <h2>Personalized Profile</h2>
+                <p>Create a unique profile based on your color deficiency, allowing for a truly customized visual experience and relevant content.</p>
+            </div>
+
+            <div class="feature-box">
+                <div class="feature-icon">&#x1F4C4;</div> <h2>Medical Report Insights</h2>
+                <p>Securely upload your medical reports for analysis to get precise recommendations and insights into your visual health.</p>
+            </div>
+    </section>
+
+    <script>
+        const canvas = document.getElementById('interactiveCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.history = [];
+                this.maxHistory = 20;
+                this.color = color;
+                this.life = 1;
+                this.maxLife = 200;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+
+                this.history.push({ x: this.x, y: this.y });
+                if (this.history.length > this.maxHistory) {
+                    this.history.shift();
+                }
+
+                this.life -= 1 / this.maxLife;
+                if (this.life <= 0) {
+                    this.reset();
+                }
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.history = [];
+                this.life = 1;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 1 + (this.life * 2);
+                ctx.lineCap = 'round';
+
+                if (this.history.length > 1) {
+                    ctx.moveTo(this.history[0].x, this.history[0].y);
+                    for (let i = 1; i < this.history.length; i++) {
+                        ctx.lineTo(this.history[i].x, this.history[i].y);
+                    }
+                } else {
+                    ctx.arc(this.x, this.y, 1, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                }
+                ctx.stroke();
+            }
+        }
+
+        const particles = [];
+        const numParticles = 50;
+        const colors = [
+            'rgba(255, 255, 255, 0.7)', // White
+            'rgba(200, 200, 200, 0.7)', // Light Gray
+            'rgba(150, 150, 150, 0.7)'  // Medium Gray
+        ];
+
+        function initCanvas() {
+            canvas.width = width;
+            canvas.height = height;
+            for (let i = 0; i < numParticles; i++) {
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                particles.push(new Particle(Math.random() * width, Math.random() * height, randomColor));
+            }
+        }
+
+        function animateCanvas() {
+            requestAnimationFrame(animateCanvas);
+            ctx.fillStyle = 'rgba(26, 26, 26, 0.1)'; /* Very subtle dark gray for blending */
+            ctx.fillRect(0, 0, width, height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            particles.length = 0;
+            initCanvas();
+        });
+
+        initCanvas();
+        animateCanvas();
+
+        // --- JavaScript for Smooth Scrolling ---
+        document.querySelectorAll('a.scroll-link').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault(); // Prevent default jump behavior
+
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+
+                if (targetElement) {
+                    // Get the fixed nav height to offset the scroll position
+                    const fixedNav = document.querySelector('.fixed-nav');
+                    const fixedNavHeight = fixedNav ? fixedNav.offsetHeight : 0;
+
+                    const elementPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
+                    const offsetPosition = elementPosition - fixedNavHeight; // Adjust for fixed nav
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

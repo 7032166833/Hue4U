@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hue4U | Color Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="icon" href="LOGO.jpg" type="image/jpeg">
+    <style>
+        /* Global Body Styles for Dark Theme */
+        body {
+            margin: 0;
+            background-color: #1a1a1a; /* Dark background */
+            font-family: sans-serif;
+            color: #f5f5f5; /* Light text for readability */
+            min-height: 100vh; /* Ensure body takes full viewport height */
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            overflow-y: auto; /* Enable vertical scrolling */
+            position: relative; /* Needed for z-index context of canvas */
+        }
+        
+        /* Interactive Canvas Background */
+        #interactiveCanvas {
+            position: fixed; /* Keep background fixed */
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1; /* Always behind other content */
+        }
+
+        /* Fixed Navigation Bar */
+        .fixed-nav {
+            position: fixed; /* Makes it stay at the top */
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem 3rem; /* Vertical padding */
+            background-color: rgba(0, 0, 0, 0.8); /* Slightly transparent black */
+            display: flex; /* Use flexbox for centering content */
+            justify-content: flex-start; /* Center content horizontally */
+            align-items: center; /* Center content vertically */
+            z-index: 20; /* Ensure it's on top of other elements */
+            height: 64px; /* Set a fixed height for the nav bar */
+        }
+
+        /* Hamburger Icon for Sidebar */
+        .hamburger {
+            cursor: pointer;
+            padding: 0.5rem;
+            margin-right: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 30px;
+        }
+        .hamburger span {
+            display: block;
+            width: 100%;
+            height: 3px;
+            background-color: #f5f5f5; /* Light color for dark theme */
+            border-radius: 2px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Sidebar Styling (Modified for slide-in effect) */
+        .sidebar {
+            position: fixed; /* Crucial for overlaying */
+            left: -280px; /* Initially hidden */
+            top: 0;
+            width: 280px; /* Fixed width for sidebar */
+            min-width: 280px;
+            height: 100vh; /* Full viewport height */
+            background-color: rgba(21, 21, 21, 0.7); /* Transparent white like auth-container-dark */
+            backdrop-filter: blur(12px); /* Frosted glass effect */
+            border-right: 1px solid rgba(0, 0, 0, 0.1); /* Subtle border */
+            padding: 1rem;
+            overflow-y: auto; /* Scrollable sidebar */
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3); /* Darker shadow */
+            transition: left 0.3s ease-in-out; /* Smooth slide transition */
+            z-index: 15; /* Above canvas, below fixed nav */
+            display: flex; /* To maintain flex column layout */
+            flex-direction: column;
+        }
+        .sidebar.sidebar-open {
+            left: 0; /* Slide in */
+        }
+
+        /* Main Content Wrapper to account for fixed nav and sidebar */
+        .main-content-wrapper {
+            padding-top: 64px; /* Offset for fixed nav height */
+            min-height: calc(100vh - 64px); /* Full height minus nav height */
+            width: 100%;
+            display: flex; /* Flexbox for sidebar and main-content */
+            flex-grow: 1; /* Allow it to take available space */
+            /* Removed margin-left transition here */
+            transition: none; /* No transition for main content wrapper's margin */
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            /* Changed to items-start to align content to the left */
+            align-items: flex-start;
+            justify-content: flex-start;
+            width: 100%; /* Ensure it takes full width within wrapper */
+        }
+
+        /* Adjust other elements for dark theme */
+        .user-profile-details,
+        #deficiency-display {
+            color: #f5f5f5; /* Light text */
+            background-color: rgba(255, 255, 255, 0.05); /* Subtle background */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .user-profile-details {
+            margin-top: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        #upload-box,
+        #camera-section,
+        #result-section {
+            background-color: rgba(255, 255, 255, 0.08); /* Frosted glass effect */
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        #upload-box {
+            border: 2px dashed #6B7280; /* Tailwind gray-500 for dark theme */
+            color: #D1D5DB; /* Tailwind gray-300 */
+        }
+        #upload-box:hover {
+            border-color: #9CA3AF; /* Tailwind gray-400 */
+            background-color: rgba(255, 255, 255, 0.05); /* Subtle transparent hover */
+        }
+
+        /* Buttons styling */
+        /* Applying a consistent dark gray background to all primary action buttons */
+        .bg-blue-500, .bg-blue-600, .bg-purple-500, .bg-green-500, .bg-red-500, .bg-yellow-500 {
+            background-color: #4a4a4a; /* Darker gray for buttons */
+            color: #f5f5f5; /* Light text */
+        }
+        .bg-blue-500:hover, .bg-blue-600:hover, .bg-purple-500:hover, .bg-green-500:hover, .bg-red-500:hover, .bg-yellow-500:hover {
+            background-color: #6a6a6a; /* Lighter gray on hover */
+        }
+        /* Specific text colors if still needed, adjust for dark theme */
+        .text-blue-600, .text-purple-600, .text-green-600, .text-red-600, .text-yellow-600 {
+             color: #9CA3AF; /* A subtle lighter gray for accents */
+        }
+        .text-gray-800 {
+            color: #f5f5f5; /* Light text for main content */
+        }
+        .text-gray-700 {
+            color: #d1d5db; /* Lighter gray for headings */
+        }
+        .text-gray-600 {
+            color: #a0aec0; /* Even lighter gray */
+        }
+        .bg-gray-50 {
+            background-color: rgba(255, 255, 255, 0.05); /* Subtle background for status */
+        }
+
+        /* Canvas border for dark theme */
+        #image-preview-canvas, #processed-output-canvas {
+            border: 2px dashed #6B7280; /* Tailwind gray-500 */
+            max-width: 100%;
+            height: auto;
+            display: block;
+            /* mx-auto will center these elements now that main-content is items-start */
+            cursor: default;
+        }
+        #image-preview-canvas.eyedropper-active {
+            cursor: crosshair;
+        }
+
+        /* Detected color display on dark theme */
+        #detected-color-display {
+            background-color: rgba(0, 0, 0, 0.7); /* Darker, more opaque background */
+            color: #f5f5f5;
+            display: flex; /* Changed to none for initial hiding, controlled by JS */
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: bold;
+            position: absolute;
+            top: 2px;
+            left: 1px;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.0);
+        }
+        #color-swatch {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #6B7280; /* Darker border */
+            border-radius: 4px;
+        }
+
+        /* Personalized UI Themes (unchanged, but included for completeness) */
+        body.theme-protanopia {
+            background-color: #fff9ed; /* Lighter cream/orange */
+            color: #4a5568;
+        }
+        body.theme-protanopia .bg-blue-500 {
+            background-color: #48bb78; /* Greenish for protanopia */
+        }
+        body.theme-protanopia .text-blue-600 {
+            color: #38a169; /* Darker green */
+        }
+
+        body.theme-deuteranopia {
+            background-color: #fef2f2; /* Lighter red */
+            color: #4a5568;
+        }
+        body.theme-deuteranopia .bg-blue-500 {
+            background-color: #fc8181; /* Reddish for deuteranopia */
+        }
+        body.theme-deuteranopia .text-blue-600 {
+            color: #e53e3e; /* Darker red */
+        }
+
+        /* UPDATED: Hue4U Description Text Styling (Removed background box styles) */
+        .hue4u-description-box {
+            /* Removed background, border, shadow, and border-radius */
+            color: #f5f5f5; /* Light text */
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; /* Smooth transition for animation */
+            cursor: default; /* Indicate it's not clickable */
+            margin-bottom: 3rem; /* Increased spacing below the box */
+            align-self: flex-start; /* Aligns this item to the left within its flex container */
+            padding: 0; /* Removed padding as there's no background box */
+
+            /* Responsive Width: 70vw on large screens, adjust down for smaller */
+            width: 70vw; /* Default: 70% of viewport width */
+            max-width: 600px; /* Optional: cap maximum width for very large displays */
+        }
+        /* Styles for the main point text inside the description box */
+        .hue4u-description-box .hue4u-main-point {
+            font-size: 4rem; /* Even larger font size for main point */
+            font-weight: 900; /* Extra bold font */
+            line-height: 1.3; /* Tighter line height for large text */
+            margin-bottom: 0.5rem; /* Space between main and sub-point */
+            text-align: left;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* Text shadow effect */
+            margin-top: 4.3rem;
+        }
+        /* Styles for the sub-point text inside the description box */
+        .hue4u-description-box .hue4u-sub-point {
+            font-size: 1.2rem; /* Smaller than main, but still clear */
+            font-weight: 500; /* Medium bold */
+            line-height: 1.5; /* More spacious line height for readability */
+            text-align: left;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); /* Text shadow effect */
+            margin-bottom: 8rem;
+        }
+        .main-content {
+    flex-grow: 1;
+    padding: 4 rem;
+    display: flex;
+    flex-direction: column;
+    /* Change this line from flex-start to center */
+    align-items: center; /* This will center items horizontally within the flex container */
+    justify-content: flex-start;
+    width: 100%; /* Ensure it takes full width within wrapper */
+}
+
+        /* Responsive adjustments for description box margin and width */
+        @media (min-width: 1024px) { /* Large screens (lg breakpoint) */
+            .hue4u-description-box {
+                margin-left: 6rem; /* Larger gap from the left */
+            }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) { /* Medium screens (md breakpoint) */
+            .hue4u-description-box {
+                width: 85vw; /* Slightly wider on medium screens */
+                margin-left: 4rem; /* Medium gap */
+            }
+            .hue4u-description-box .hue4u-main-point {
+                font-size: 2rem; /* Adjust font size down for medium screens */
+            }
+            .hue4u-description-box .hue4u-sub-point {
+                font-size: 1rem; /* Adjust font size down for medium screens */
+            }
+        }
+        @media (max-width: 767px) { /* Small screens (sm breakpoint and below) */
+            .hue4u-description-box {
+                width: 90vw; /* Even wider on small screens to fill space */
+                margin-left: 1rem; /* Smaller gap */
+                /* Removed padding as there's no background box */
+            }
+            .hue4u-description-box .hue4u-main-point {
+                font-size: 1.75rem; /* Adjust font size down for small screens */
+            }
+            .hue4u-description-box .hue4u-sub-point {
+                font-size: 0.9rem; /* Adjust font size down for small screens */
+            }
+        }
+
+        .hue4u-description-box:hover {
+            transform: none; /* No transform on hover, as no box to lift/enlarge */
+            box-shadow: none; /* No box shadow on hover */
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <canvas id="interactiveCanvas"></canvas>
+
+    <nav class="fixed-nav">
+        <div class="hamburger" id="hamburger-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="text-white text-3xl font-bold tracking-wider">HUE4U</div>
+    </nav>
+
+    <div class="main-content-wrapper">
+        <div class="sidebar flex flex-col" id="sidebar">
+            <h1 class="text-2xl font-bold text-white mt-12">PROFILE</h1>
+
+            <div id="user-profile-details" class="user-profile-details rounded-md px-3 py-2 mb-4">
+                <p class="font-semibold text-lg">Loading Profile...</p>
+            </div>
+
+            <div class="mb-4">
+                <label for="deficiency-display" class="block mb-2 text-sm font-medium text-gray-400">Your Vision Type:</label>
+                <span id="deficiency-display" class="block p-2 border rounded text-white">Normal Vision</span>
+            </div>
+
+            <div class="flex-grow overflow-y-auto mt-4">
+                <h2 class="text-xl font-semibold mb-2 text-gray-300">Your History</h2>
+                <div id="history" class="space-y-2 text-sm text-gray-400">
+                    <p class="text-gray-500">Loading history...</p>
+                </div>
+            </div>
+
+            <button id="logout-button" class="w-full bg-gray-700 hover:bg-gray-900 text-white p-2 rounded mt-4 transition">
+                Logout
+            </button>
+        </div>
+
+        <div class="main-content flex flex-col px-4">
+            <h1 class="text-3xl font-extrabold mb-6 text-white text-center w-full"></h1>
+
+            <div class="hue4u-description-box uppercase">
+                <p class="hue4u-main-point">TRANSFORMING COLOR PERCEPTION</p>
+                <p class="hue4u-sub-point">WE EMPOWER COLORBLIND INDIVIDUALS TO EXPERIENCE THE NEAREST, MOST ACCURATE SHADES OF ALL COLORS, ENHANCING THEIR PERCEPTION OF THE WORLD.</p>
+            </div>
+            <div class="main-content flex flex-col items-center">
+            <h1 class="text-5xl font-extrabold mb-6 text-gray-800">HUE ANALYZER</h1>
+            <h3>PROVIDING REAL-TIME COLOR DETECTION,IMAGE PROCESSING AND PERSONALIZED VISION CORRECTION</h3>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-4 mb-6 w-full max-w-xs mx-auto">
+                <div id="upload-box" class="flex-1 border-2 border-dashed border-gray-500 p-8 text-center cursor-pointer rounded-lg bg-gray-800 hover:bg-gray-700 transition">
+                    <p class="text-gray-300 font-semibold">📁 Click to upload an image</p>
+                    <input type="file" id="file-input" accept="image/jpeg,image/png" class="hidden">
+                </div>
+                <button id="camera-button" class="flex-1 bg-gray-700 hover:bg-gray-900 text-white p-8 rounded-lg transition font-semibold flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Live Camera</span>
+                </button>
+            </div>
+
+            <div id="camera-section" class="hidden flex flex-col items-center mb-6 w-full max-w-xl bg-gray-800 p-6 rounded-lg shadow-md mx-auto">
+                <video id="live-video" class="w-full max-w-full rounded-md mb-4" autoplay playsinline></video>
+                <div class="flex gap-4">
+                    <button id="capture-button" class="bg-gray-700 hover:bg-gray-900 text-white p-3 rounded-lg transition font-semibold">
+                        📸 Capture Image
+                    </button>
+                    <button id="stop-camera-button" class="bg-gray-700 hover:bg-gray-900 text-white p-3 rounded-lg transition font-semibold">
+                        Stop Camera
+                    </button>
+                </div>
+            </div>
+
+            <p id="image-load-message" class="text-center text-sm mb-4 text-gray-400 mx-auto">Upload or capture an image to begin analysis.</p>
+
+          <div class="canvas-container mb-6 w-full max-w-lg relative mx-auto flex flex-col sm:flex-row gap-4 justify-center items-center">
+    <canvas id="image-preview-canvas" class="rounded-md shadow-md flex-1"></canvas>
+    <canvas id="processed-output-canvas" class="rounded-md shadow-md flex-1"></canvas>
+    <div id="detected-color-display" class="absolute top-2 left-2 bg-black bg-opacity-80 p-2 rounded-md shadow-sm">
+        <span id="color-swatch" class="block"></span>
+        <span id="color-name-display"></span>
+    </div>
+</div>
+
+<div class="flex justify-center gap-4 mt-4 w-full max-w-lg mx-auto">
+    <button id="eyedropper-button" class="bg-gray-700 hover:bg-gray-900 text-white p-3 rounded-lg transition font-semibold">
+        🎨 Activate Eyedropper
+    </button>
+    <button id="toggle-corrected-view-button" class="bg-gray-700 hover:bg-gray-900 text-white p-3 rounded-lg transition font-semibold hidden">
+        Get Corrected View
+    </button>
+</div>
+
+            <div id="result-section" class="mt-6 p-6 bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl text-center mx-auto">
+                <h2 class="text-xl font-semibold mb-3 text-gray-300">Image Analysis Results</h2>
+                <div id="analysis-results-text" class="text-gray-300 mb-4 text-left">
+                    <p id="dominant-color-result">Dominant Color: <span class="font-medium text-gray-400">N/A</span></p>
+                    <p id="description-result">Description: <span class="font-medium text-gray-400">N/A</span></p>
+                </div>
+                <button onclick="speakAnalysisResults()" class="bg-gray-700 hover:bg-gray-900 text-white p-3 rounded-lg transition font-semibold">
+                    🔊 Hear Analysis
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
+    <script async src="opencv.js" onload="onOpenCvReady()"></script>
+    <script src="script.js"></script>
+
+    <script>
+        // Existing canvas background animation script
+        const canvas = document.getElementById('interactiveCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let particles = [];
+        const numParticles = 50;
+        let dynamicColors = [];
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.history = [];
+                this.maxHistory = 20;
+                this.color = color;
+                this.life = 1;
+                this.maxLife = 200;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+
+                this.history.push({ x: this.x, y: this.y });
+                if (this.history.length > 1) { 
+                    this.history.shift();
+                } else if (this.history.length === 1 && this.maxHistory === 0) {
+                    this.history = [];
+                }
+
+                this.life -= 1 / this.maxLife;
+                if (this.life <= 0) {
+                    this.reset();
+                }
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.history = [];
+                this.life = 1;
+                const randomColor = dynamicColors[Math.floor(Math.random() * dynamicColors.length)];
+                this.color = randomColor;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 1 + (this.life * 2);
+                ctx.lineCap = 'round';
+
+                if (this.history.length > 1) {
+                    ctx.moveTo(this.history[0].x, this.history[0].y);
+                    for (let i = 1; i < this.history.length; i++) {
+                        ctx.lineTo(this.history[i].x, this.history[i].y);
+                    }
+                } else {
+                    ctx.arc(this.x, this.y, 1, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                }
+                ctx.stroke();
+            }
+        }
+
+        function setParticleColors() {
+            const deficiencyDisplay = document.getElementById('deficiency-display');
+            const deficiencyType = deficiencyDisplay ? deficiencyDisplay.textContent.toLowerCase().split(' ')[0] : 'normal';
+
+            switch (deficiencyType) {
+                case 'protanopia':
+                    dynamicColors = ['rgba(0, 0, 255, 0.7)', 'rgba(50, 50, 255, 0.7)', 'rgba(100, 100, 255, 0.7)']; // Blue shades
+                    break;
+                case 'deuteranopia':
+                    dynamicColors = ['rgba(128, 0, 128, 0.7)', 'rgba(150, 0, 150, 0.7)', 'rgba(180, 0, 180, 0.7)']; // Purple shades
+                    break;
+                case 'tritanopia':
+                    dynamicColors = ['rgba(255, 0, 0, 0.7)', 'rgba(255, 50, 50, 0.7)', 'rgba(255, 100, 100, 0.7)']; // Red shades
+                    break;
+                case 'achromatopsia':
+                    dynamicColors = ['rgba(100, 100, 100, 0.7)', 'rgba(150, 150, 150, 0.7)', 'rgba(200, 200, 200, 0.7)']; // Grey shades
+                    break;
+                default:
+                    dynamicColors = ['rgba(255, 255, 255, 0.7)', 'rgba(200, 200, 200, 0.7)', 'rgba(150, 150, 150, 0.7)']; // White/Light Gray for normal
+                    break;
+            }
+            // Re-initialize particles with new colors
+            particles.length = 0;
+            initCanvas();
+        }
+
+        function initCanvas() {
+            canvas.width = width;
+            canvas.height = height;
+            for (let i = 0; i < numParticles; i++) {
+                const randomColor = dynamicColors[Math.floor(Math.random() * dynamicColors.length)];
+                particles.push(new Particle(Math.random() * width, Math.random() * height, randomColor));
+            }
+        }
+
+        function animateCanvas() {
+            requestAnimationFrame(animateCanvas);
+            ctx.fillStyle = 'rgba(26, 26, 26, 0.1)'; // Slightly transparent black to create trails
+            ctx.fillRect(0, 0, width, height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            particles.length = 0; // Clear particles on resize
+            initCanvas(); // Re-initialize with new dimensions and colors
+        });
+
+        // Initial setup for canvas animation
+        setParticleColors();
+        animateCanvas();
+
+        // Observe changes to deficiency-display to update particle colors
+        const observer = new MutationObserver(setParticleColors);
+        const deficiencyDisplayElement = document.getElementById('deficiency-display');
+        if (deficiencyDisplayElement) {
+            observer.observe(deficiencyDisplayElement, { childList: true, subtree: true });
+        }
+
+        // START of NEW JAVASCRIPT for Sidebar Functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const hamburger = document.getElementById('hamburger-menu');
+            const sidebar = document.getElementById('sidebar');
+            // No need to reference mainContentWrapper if it's not being moved
+            // const mainContentWrapper = document.querySelector('.main-content-wrapper'); 
+
+            if (hamburger && sidebar) { // Only check for hamburger and sidebar
+                hamburger.addEventListener('click', () => {
+                    sidebar.classList.toggle('sidebar-open');
+                    // Removed all mainContentWrapper.style.marginLeft adjustments
+                });
+            } else {
+                console.error("Hamburger menu or sidebar not found for sidebar functionality.");
+            }
+        });
+        // END of NEW JAVASCRIPT for Sidebar Functionality
+    </script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hue4U | Login / Sign Up</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="icon" href="LOGO.jpg" type="image/jpeg">
+    <style>
+        /* Global Body Styles for Dark Theme (from landing.html) */
+        body {
+            margin: 0;
+            background-color: #1a1a1a; /* Dark background */
+            font-family: sans-serif;
+            color: #f5f5f5; /* Light text for readability */
+            overflow: hidden; /* Hide scrollbars as content is centered */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+
+        /* Interactive Canvas Background (from landing.html) */
+        #interactiveCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1; /* Always behind other content */
+        }
+
+        .fixed-nav {
+            position: fixed; /* Makes it stay at the top */
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem 3rem; /* Vertical padding */
+            background-color: rgba(0, 0, 0, 0.8); /* Slightly transparent black */
+            display: flex; /* Use flexbox for centering content */
+            justify-content: flex-start; /* Center content horizontally */
+            align-items: left; /* Center content vertically (if height allows) */
+            z-index: 20; /* Ensure it's on top of other elements */
+            height: 64px; /* Set a fixed height for the nav bar */
+        }
+
+        /* --- NEW: Main Content Wrapper Style --- */
+        /* This wrapper will contain your login/signup box and will be centered below the fixed nav */
+        .main-content-wrapper {
+            padding-top: 64px; /* IMPORTANT: This offsets the fixed nav's height */
+            min-height: 100vh; /* Ensures it takes full viewport height after padding */
+            display: flex; /* Use flexbox to center its child (auth-container) */
+            justify-content: center; /* Horizontal centering of auth-container */
+            align-items: center; /* Vertical centering of auth-container */
+            flex-direction: column; /* Allows vertical stacking if you add more elements */
+        }
+
+        /* Styling for Login/Sign Up Container (Dark/Transparent Theme) */
+        .auth-container-dark {
+            background-color: rgba(255, 255, 255, 0.08); /* Transparent white from landing.html feature boxes */
+            backdrop-filter: blur(5px); /* Frosted glass effect from landing.html feature boxes */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Custom styles for input fields on focus */
+        .input-field:focus {
+            border-color: #9CA3AF !important; /* Tailwind gray-400 for dark theme */
+            box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.3) !important; /* Lighter glow */
+        }
+
+        /* Custom styles for file upload box */
+        .file-upload-box {
+            border: 2px dashed #6B7280; /* Tailwind gray-500 */
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: #D1D5DB; /* Tailwind gray-300 */
+        }
+        .file-upload-box:hover {
+            border-color: #9CA3AF; /* Tailwind gray-400 */
+            background-color: rgba(255, 255, 255, 0.05); /* Subtle transparent hover */
+        }
+        .file-upload-box.has-file {
+            border-color: #68D391; /* Tailwind green-400 */
+            background-color: rgba(255, 255, 255, 0.08); /* Subtle transparent green */
+        }
+        .google-icon {
+    vertical-align: middle;
+    margin-top: 6px; /* Adjust this value (e.g., 1px, 3px) to move the image down */
+}
+    </style>
+</head>
+<body class="font-sans">
+    <canvas id="interactiveCanvas"></canvas>
+
+    <nav class="fixed-nav">
+        <div class="text-white text-3xl font-bold tracking-wider">HUE4U</div>
+    </nav>
+
+    <div class="p-8 rounded-lg shadow-md w-96 auth-container-dark">
+        <h1 class="text-2xl font-bold mb-6 text-center text-white"></h1>
+
+        <div class="flex mb-6 border-b border-gray-700">
+            <button id="login-tab" class="flex-1 py-2 font-medium border-b-2 border-white text-white transition duration-300">Login</button>
+            <button id="signup-tab" class="flex-1 py-2 font-medium text-gray-400 border-b-2 border-transparent hover:border-gray-600 transition duration-300">Sign Up</button>
+        </div>
+
+        <p id="auth-message" class="text-center text-sm mb-4 text-red-400 hidden"></p>
+
+        <div id="login-form">
+            <input id="login-email" type="email" placeholder="Email" class="w-full p-2 mb-3 border border-gray-600 rounded input-field bg-gray-800 text-white placeholder-gray-400">
+            <input id="login-password" type="password" placeholder="Password" class="w-full p-2 mb-4 border border-gray-600 rounded input-field bg-gray-800 text-white placeholder-gray-400">
+            <button onclick="login()" class="w-full bg-gray-700 hover:bg-gray-900 text-white p-2 rounded transition">
+                Login
+            </button>
+            <button onclick="googleLogin()" class="w-full mt-3 bg-gray-700 hover:bg-gray-900 text-white p-2 rounded transition flex items-center justify-center">
+    <img src="google.png" class="w-7 h-7 mr-1 google-icon">
+    Sign in with Google
+</button>
+        </div>
+
+        <div id="signup-form" class="hidden">
+            <input id="signup-name" type="text" placeholder="Full Name" class="w-full p-2 mb-3 border border-gray-600 rounded input-field bg-gray-800 text-white placeholder-gray-400">
+            <input id="signup-email" type="email" placeholder="Email" class="w-full p-2 mb-3 border border-gray-600 rounded input-field bg-gray-800 text-white placeholder-gray-400">
+            <input id="signup-password" type="password" placeholder="Password (min 6 characters)" class="w-full p-2 mb-3 border border-gray-600 rounded input-field bg-gray-800 text-white placeholder-gray-400">
+            <input id="signup-phone" type="tel" placeholder="Phone Number (Optional)" class="w-full p-2 mb-3 border border-gray-600 rounded input-field bg-gray-800 text-white placeholder-gray-400">
+            <select id="deficiency-dropdown" class="w-full p-2 mb-3 border border-gray-600 rounded input-field bg-gray-800 text-white">
+                <option value="normal">Normal Vision</option>
+                <option value="protanopia">Protanopia (Red-Green)</option>
+                <option value="deuteranopia">Deuteranopia (Red-Green)</option>
+                <option value="tritanopia">Tritanopia (Blue-Yellow)</option>
+                <option value="achromatopsia">Achromatopsia (Total Color Blindness)</option>
+                <option value="other">Other/Undiagnosed</option>
+            </select>
+            <div id="medical-report-upload-box" class="file-upload-box">
+                <p id="medical-report-filename">Click to upload medical report (Optional)</p>
+                <input type="file" id="medical-report-input" accept=".jpg,.jpeg,.png,.pdf" class="hidden">
+            </div>
+            <button onclick="signup()" class="w-full bg-gray-700 hover:bg-gray-900 text-white p-2 rounded transition">
+                Sign Up
+            </button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
+
+    <script src="script.js"></script>
+
+    <script>
+        const canvas = document.getElementById('interactiveCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.history = [];
+                this.maxHistory = 20;
+                this.color = color;
+                this.life = 1;
+                this.maxLife = 200;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+
+                this.history.push({ x: this.x, y: this.y });
+                if (this.history.length > this.maxHistory) {
+                    this.history.shift();
+                }
+
+                this.life -= 1 / this.maxLife;
+                if (this.life <= 0) {
+                    this.reset();
+                }
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.history = [];
+                this.life = 1;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 1 + (this.life * 2);
+                ctx.lineCap = 'round';
+
+                if (this.history.length > 1) {
+                    ctx.moveTo(this.history[0].x, this.history[0].y);
+                    for (let i = 1; i < this.history.length; i++) {
+                        ctx.lineTo(this.history[i].x, this.history[i].y);
+                    }
+                } else {
+                    ctx.arc(this.x, this.y, 1, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                }
+                ctx.stroke();
+            }
+        }
+
+        const particles = [];
+        const numParticles = 50;
+        const colors = [
+            'rgba(255, 255, 255, 0.7)', // White
+            'rgba(200, 200, 200, 0.7)', // Light Gray
+            'rgba(150, 150, 150, 0.7)'  // Medium Gray
+        ];
+
+        function initCanvas() {
+            canvas.width = width;
+            canvas.height = height;
+            for (let i = 0; i < numParticles; i++) {
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                particles.push(new Particle(Math.random() * width, Math.random() * height, randomColor));
+            }
+        }
+
+        function animateCanvas() {
+            requestAnimationFrame(animateCanvas);
+            ctx.fillStyle = 'rgba(26, 26, 26, 0.1)'; /* Very subtle dark gray for blending */
+            ctx.fillRect(0, 0, width, height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            particles.length = 0;
+            initCanvas();
+        });
+
+        initCanvas();
+        animateCanvas();
+    </script>
+
+
+    <script>
+        // Tab switching logic for DOM interaction (original script)
+        document.getElementById("login-tab").addEventListener("click", () => {
+            document.getElementById("login-form").classList.remove("hidden");
+            document.getElementById("signup-form").classList.add("hidden");
+            document.getElementById("login-tab").classList.add("border-white", "text-white"); /* Changed for theme */
+            document.getElementById("signup-tab").classList.remove("border-white", "text-white"); /* Changed for theme */
+            document.getElementById("signup-tab").classList.add("border-transparent", "text-gray-400"); /* Ensure inactive state */
+            // Hide auth message on tab switch
+            const authMessageDiv = document.getElementById("auth-message");
+            if (authMessageDiv) authMessageDiv.classList.add("hidden");
+        });
+
+        document.getElementById("signup-tab").addEventListener("click", () => {
+            document.getElementById("signup-form").classList.remove("hidden");
+            document.getElementById("login-form").classList.add("hidden");
+            document.getElementById("signup-tab").classList.add("border-white", "text-white"); /* Changed for theme */
+            document.getElementById("login-tab").classList.remove("border-white", "text-white"); /* Changed for theme */
+            document.getElementById("login-tab").classList.add("border-transparent", "text-gray-400"); /* Ensure inactive state */
+            // Hide auth message on tab switch
+            const authMessageDiv = document.getElementById("auth-message");
+            if (authMessageDiv) authMessageDiv.classList.add("hidden");
+
+            // IMPORTANT: Activate file upload interactions ONLY when signup form is visible
+            // This function is assumed to be defined in script.js
+            activateSignupFormInteractions();
+        });
+
+        // Ensure initial state for tabs (login tab active by default)
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("login-tab").click(); // Simulate click to set initial active tab styles
+        });
+    </script>
+</body>
+</html>
